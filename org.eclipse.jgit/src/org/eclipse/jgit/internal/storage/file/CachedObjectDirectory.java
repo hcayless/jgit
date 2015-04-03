@@ -46,8 +46,12 @@ package org.eclipse.jgit.internal.storage.file;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.eclipse.jgit.internal.storage.pack.ObjectToPack;
 import org.eclipse.jgit.internal.storage.pack.PackWriter;
@@ -149,17 +153,32 @@ class CachedObjectDirectory extends FileObjectDatabase {
 	Set<ObjectId> getShallowCommits() throws IOException {
 		return wrapped.getShallowCommits();
 	}
+        
+        @Override
+        public boolean equals(Object o) {
+                if (o != null && o instanceof CachedObjectDirectory) {
+                        return o.hashCode() == this.hashCode();
+                }
+                return false;
+        }
 
-	private CachedObjectDirectory[] myAlternates() {
-		if (alts == null) {
-			ObjectDirectory.AlternateHandle[] src = wrapped.myAlternates();
-			alts = new CachedObjectDirectory[src.length];
-			for (int i = 0; i < alts.length; i++)
-				alts[i] = src[i].db.newCachedFileObjectDatabase();
-		}
-		return alts;
-	}
-
+        @Override
+        public int hashCode() {
+                int hash = 3;
+                hash = 29 * hash + Objects.hashCode(this.wrapped);
+                return hash;
+        }
+        
+        private CachedObjectDirectory[] myAlternates() {
+            if (alts == null) {
+                    ObjectDirectory.AlternateHandle[] src = wrapped.myAlternates();
+                    alts = new CachedObjectDirectory[src.length];
+                    for (int i = 0; i < alts.length; i++)
+                            alts[i] = src[i].db.newCachedFileObjectDatabase();
+            }
+            return alts;
+        }
+        
 	@Override
 	void resolve(Set<ObjectId> matches, AbbreviatedObjectId id)
 			throws IOException {
@@ -171,15 +190,17 @@ class CachedObjectDirectory extends FileObjectDatabase {
 		wrapped.resolve(matches, id);
 	}
 
-	@Override
+	@Override 
 	public boolean has(final AnyObjectId objectId) throws IOException {
 		if (unpackedObjects.contains(objectId))
 			return true;
 		if (wrapped.hasPackedObject(objectId))
 			return true;
 		for (CachedObjectDirectory alt : myAlternates()) {
-			if (alt.has(objectId))
+			if (alt.unpackedObjects.contains(objectId))
 				return true;
+                        if (alt.wrapped.hasPackedObject(objectId))
+                                return true;
 		}
 		return false;
 	}
@@ -194,9 +215,12 @@ class CachedObjectDirectory extends FileObjectDatabase {
 		if (ldr != null)
 			return ldr;
 		for (CachedObjectDirectory alt : myAlternates()) {
-			ldr = alt.openObject(curs, objectId);
+                        ldr = alt.openLooseObject(curs, objectId);
 			if (ldr != null)
 				return ldr;
+                        ldr = wrapped.openPackedObject(curs, objectId);
+                        if (ldr != null)
+                                return ldr;
 		}
 		return null;
 	}

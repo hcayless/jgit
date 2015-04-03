@@ -422,7 +422,6 @@ public class FileRepository extends Repository {
 					if (ref.getPeeledObjectId() != null)
 						r.add(ref.getPeeledObjectId());
 				}
-				r.addAll(repo.getAdditionalHaves());
 			}
 		}
 		return r;
