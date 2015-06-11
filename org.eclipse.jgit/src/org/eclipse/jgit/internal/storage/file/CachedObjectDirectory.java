@@ -218,7 +218,7 @@ class CachedObjectDirectory extends FileObjectDatabase {
                         ldr = alt.openLooseObject(curs, objectId);
 			if (ldr != null)
 				return ldr;
-                        ldr = wrapped.openPackedObject(curs, objectId);
+                        ldr = alt.wrapped.openPackedObject(curs, objectId);
                         if (ldr != null)
                                 return ldr;
 		}

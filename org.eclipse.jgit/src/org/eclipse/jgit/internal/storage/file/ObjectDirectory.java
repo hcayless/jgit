@@ -874,17 +874,12 @@ public class ObjectDirectory extends FileObjectDatabase {
 			synchronized (alternates) {
 				alt = alternates.get();
 				if (alt == null) {
-					try {   
-                                                List<AlternateHandle> alts = new ArrayList<AlternateHandle>();
-						loadAllAlternates(alts);
-                                                if (alts.contains(this))
-                                                        alts.remove(this);
-                                                alt = new AlternateHandle[alts.size()];
-                                                alt = alts.toArray(alt);
-                                                
-					} catch (IOException e) {
-						alt = new AlternateHandle[0];
-					}
+                                        List<AlternateHandle> alts = new ArrayList<AlternateHandle>();
+                                        loadAllAlternates(alts);
+                                        if (alts.contains(this))
+                                                alts.remove(this);
+                                        alt = new AlternateHandle[alts.size()];
+                                        alt = alts.toArray(alt);
 					alternates.set(alt);
 				}
 			}
@@ -892,7 +887,7 @@ public class ObjectDirectory extends FileObjectDatabase {
 		return alt;
 	}
         
-        void loadAllAlternates(List<AlternateHandle> alternates) throws IOException {
+        void loadAllAlternates(List<AlternateHandle> alternates) {
                 for (AlternateHandle alt : loadAlternates()) {
                         if (!alternates.contains(alt)) {
                                 alternates.add(alt);
@@ -901,17 +896,21 @@ public class ObjectDirectory extends FileObjectDatabase {
                 }
         }
 
-	private AlternateHandle[] loadAlternates() throws IOException {
+	private AlternateHandle[] loadAlternates() {
 		final List<AlternateHandle> l = new ArrayList<>(4);
-		final BufferedReader br = open(alternatesFile);
-		try {
-			String line;
-			while ((line = br.readLine()) != null) {
-				l.add(openAlternate(line));
-			}
-		} finally {
-			br.close();
-		}
+                try {
+                        final BufferedReader br = open(alternatesFile);
+                        try {
+                                String line;
+                                while ((line = br.readLine()) != null) {
+                                        l.add(openAlternate(line));
+                                }
+                        } finally {
+                                br.close();
+                        }
+                } catch (IOException e) {
+                    // do nothing; probably there's just no alternates file
+                }
 		return l.toArray(new AlternateHandle[l.size()]);
 	}
 
